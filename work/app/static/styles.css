@@ -1,0 +1,29 @@
+/* เพิ่มสีพื้นหลัง */
+body {
+    background-color: #ffffff;
+    font-family: Arial, sans-serif;
+    border: #333;
+}
+
+/* ปรับแต่งสไตล์ตาราง */
+table {
+    border-collapse: collapse;
+    width: 80%;
+    margin: 20px auto;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+/* ปรับแต่งสไตล์หัวข้อ */
+h1 {
+    text-align: center;
+    color: #333;
+}

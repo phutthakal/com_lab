@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ข้อมูล</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+
+</head>
+<body>
+
+    <h1>ข้อมูล</h1>
+    <table>
+        <tr>
+            <th>ชื่อ</th>
+            <th>ชื่อเล่น</th>
+            <th>อายุ</th>
+            <th>เวลาว่างทำอะไร</th>
+        </tr>
+        {% for item in data %}
+        <tr>
+            <td>{{ item["name"] }}</td>
+            <td>{{ item["nickname"] }}</td>
+            <td>{{ item["age"] }}</td>
+            <td>{{ item["free_time"] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
