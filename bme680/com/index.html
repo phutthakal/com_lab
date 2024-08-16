@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Selector</title>
+</head>
+<body>
+    <h1>Select Sensor</h1>
+    <label for="sensor_id">Select a Sensor:</label>
+    <select id="sensor_id">
+        <option value="">Select a sensor</option>
+    </select>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('get_sensors.php')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data); // ดูข้อมูลใน Console
+                    const sensorSelect = document.getElementById('sensor_id');
+
+                    if (Array.isArray(data) && data.length > 0) {
+                        data.forEach(sensor => {
+                            const option = document.createElement('option');
+                            option.value = sensor.sensor_id;
+                            option.textContent = sensor.sensor_id;
+                            sensorSelect.appendChild(option);
+                        });
+                    } else {
+                        console.error("No sensors found or data is not an array.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching sensors:", error);
+                });
+        });
+    </script>
+</body>
+</html>

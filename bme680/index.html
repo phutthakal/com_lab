@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Sensor Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #sensor-data {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>View Sensor Data</h1>
+    <form id="sensorForm">
+        <label for="sensors">Select Sensor:</label>
+        <select id="sensors" name="sensor_name">
+            <option value="1">BME680_1</option>
+            <option value="2">BME680_2</option>
+            <!-- เพิ่มตัวเลือกเซ็นเซอร์อื่นๆ ตามต้องการ -->
+        </select>
+        <button type="button" onclick="fetchSensorData()">Get Data</button>
+    </form>
+
+    <div id="sensor-data">
+        <h2>Sensor Data</h2>
+        <p id="temperature">Temperature: </p>
+        <p id="humidity">Humidity: </p>
+        <p id="pressure">Pressure: </p>
+        <p id="gas-resistance">Gas Resistance: </p>
+    </div>
+
+    <script>
+    function fetchSensorData() {
+        const sensorName = document.getElementById('sensors').value;
+        fetch(`get_sensor_data.php?sensor_name=${encodeURIComponent(sensorName)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    document.getElementById('temperature').textContent = data.message;
+                    document.getElementById('humidity').textContent = '';
+                    document.getElementById('pressure').textContent = '';
+                    document.getElementById('gas-resistance').textContent = '';
+                } else {
+                    document.getElementById('temperature').textContent = `Temperature: ${data.temperature || 'No data'} °C`;
+                    document.getElementById('humidity').textContent = `Humidity: ${data.humidity || 'No data'} %`;
+                    document.getElementById('pressure').textContent = `Pressure: ${data.pressure || 'No data'} hPa`;
+                    document.getElementById('gas-resistance').textContent = `Gas Resistance: ${data.gas_resistance || 'No data'} KOhms`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('temperature').textContent = 'Error fetching data';
+                document.getElementById('humidity').textContent = 'Error fetching data';
+                document.getElementById('pressure').textContent = 'Error fetching data';
+                document.getElementById('gas-resistance').textContent = 'Error fetching data';
+            });
+    }
+    </script>
+</body>
+</html>
