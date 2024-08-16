@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Sensor Data Display</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.2/dist/chartjs-adapter-moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      background-color: #05348b;
+      color: white;
+      padding: 20px 0;
+      margin: 0 0 20px 0;
+    }
+
+    .data-container,
+    .search-container {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+      margin: 20px;
+      padding: 20px;
+      width: 300px;
+      vertical-align: top;
+    }
+
+    .data-container p,
+    .search-container p {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+
+    .data-container span,
+    .search-container span {
+      font-weight: bold;
+    }
+
+    .search-container input,
+    .search-container button {
+      font-size: 16px;
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+    }
+
+    .search-container {
+      width: 600px;
+      /* เพิ่มความกว้าง */
+    }
+
+    .search-container #search_results {
+      max-height: 400px;
+      /* กำหนดความสูงสูงสุด */
+      overflow-y: auto;
+      /* เพิ่มการเลื่อนในแนวตั้ง */
+    }
+
+    #chart-container {
+      width: 80%;
+      height: 400px;
+      /* ปรับขนาดความสูง */
+      margin: auto;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
+</head>
+
+<body>
+
+
+
+  <h1>Real-Time Sensor Data Display</h1>
+
+  <form>
+    <label for="sensors">Select Sensor:</label>
+    <select name="sensor" id="sensor_name">
+      <option value="1">Sensor 1</option>
+      <option value="2">Sensor 2</option>
+      <option value="3">Sensor 3</option>
+    </select>
+  </form>
+
+  <div class="data-container">
+    <p>Sensor BME680</p>
+    <p>Temperature: <span id="temperature">Loading...</span> °C</p>
+    <p>Humidity: <span id="humidity">Loading...</span> %</p>
+    <p>Pressure: <span id="pressure">Loading...</span> hPa</p>
+    <p>Gas Resistance: <span id="gas_resistance">Loading...</span> Ohm</p>
+    <p>Timestamp: <span id="timestamp">Loading...</span></p>
+
+    <p><button onclick="openCrystalReport()">Download Report</button></p>
+
+  </div>
+
+  <div class="search-container">
+    <form id="search_form">
+      <label for="sensor_id">Select Sensor:</label>
+      <select id="sensor_id">
+        <option value="">All Sensors</option>
+        <!-- ตัวอย่างที่เพิ่ม sensor_id ให้เลือก -->
+        <option value="1">Sensor 1</option>
+        <option value="2">Sensor 2</option>
+        <!-- เพิ่ม sensor_id อื่น ๆ ที่มีอยู่ในฐานข้อมูล -->
+      </select>
+
+      <label for="start_time">Start Time:</label>
+      <input type="datetime-local" id="start_time">
+
+      <label for="end_time">End Time:</label>
+      <input type="datetime-local" id="end_time">
+
+      <button type="button" id="search_btn">Search</button>
+    </form>
+  </div>
+
+    <div id="search_results"></div>
+
+    <div id="chart-container">
+      <canvas id="bme680DataChart"></canvas>
+    </div>
+
+    <!-- Add this in your HTML -->
+    <select id="sensor_filter">
+      <option value="">All Sensors</option>
+      <option value="1">Sensor 1</option>
+      <option value="2">Sensor 2</option>
+      <!-- Add more options for other sensors -->
+    </select>
+
+    <script>
+      function openCrystalReport() {
+        // เปิดหน้าต่างเลือกข้อมูลจาก Crystal Report หรือโปรแกรมที่ใช้สร้างรายงาน
+        // เช่น หน้าต่างโดยตรงหรือโปรแกรมที่ใช้เลือกข้อมูล
+        // ตัวอย่างเช่น:
+        window.open('report/fromfilter.html', '_blank'); // เปิดหน้าต่างใหม่
+      }
+      function goBackToIndex() {
+        window.location.href = 'index.html';
+      }
+      // Function to fetch data and update chart
+      function fetchDataAndUpdateChart() {
+        // Get selected sensor from the filter
+        var selectedSensor = $('#sensor_filter').val();
+
+        $.ajax({
+          url: 'fetch_data.php',
+          method: 'GET',
+          data: {
+            sensor: selectedSensor // Pass the selected sensor as a parameter
+          },
+          success: function (response) {
+            if (response.error) {
+              console.error(response.error);
+              return;
+            }
+
+            // Reverse the data order to display the latest data on the right side
+            response.reverse();
+
+            // Function to format timestamp
+            function formatTimestamp(timestamp) {
+              const date = new Date(timestamp);
+              const formatter = new Intl.DateTimeFormat('th-TH', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              });
+              return formatter.format(date);
+            }
+
+            var labels = response.map(item => formatTimestamp(item.timestamp));
+            var temperatureData = response.map(item => item.temperature);
+            var humidityData = response.map(item => item.humidity);
+            var pressureData = response.map(item => item.pressure);
+            var gasResistanceData = response.map(item => item.gas_resistance);
+
+            var ctx = document.getElementById('bme680DataChart').getContext('2d');
+
+            // Update chart data
+            bme680DataChart.data.labels = labels;
+            bme680DataChart.data.datasets[0].data = temperatureData;
+            bme680DataChart.data.datasets[1].data = humidityData;
+            bme680DataChart.data.datasets[2].data = pressureData;
+            bme680DataChart.data.datasets[3].data = gasResistanceData;
+
+            // Update the chart
+            bme680DataChart.update();
+          },
+          error: function (xhr, status, error) {
+            console.log("Error: " + error);
+          }
+        });
+      }
+
+      // Event listener for filter change
+      $('#sensor_filter').change(function () {
+        fetchDataAndUpdateChart();
+      });
+
+      // Initial fetch and update
+      fetchDataAndUpdateChart();
+
+      // Set interval to update data every 1 second
+      setInterval(fetchDataAndUpdateChart, 1000);
+
+
+      // Chart configuration
+      var ctx = document.getElementById('bme680DataChart').getContext('2d');
+      var bme680DataChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Temperature',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 2,
+              data: []
+            },
+            {
+              label: 'Humidity',
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 2,
+              data: []
+            },
+            {
+              label: 'Pressure',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 2,
+              data: []
+            },
+            {
+              label: 'Gas Resistance',
+              backgroundColor: 'rgba(153, 102, 255, 0.2)',
+              borderColor: 'rgba(153, 102, 255, 1)',
+              borderWidth: 2,
+              data: []
+            }
+          ]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      $(document).ready(function () {
+        function formatThaiDateTime(datetime) {
+          var date = new Date(datetime);
+
+          function addLeadingZero(number) {
+            return (number < 10) ? '0' + number : number;
+          }
+
+          var formattedDateTime = addLeadingZero(date.getDate()) + '/' +
+            addLeadingZero(date.getMonth() + 1) + '/' +
+            date.getFullYear() + ' ' +
+            addLeadingZero(date.getHours()) + ':' +
+            addLeadingZero(date.getMinutes()) + ':' +
+            addLeadingZero(date.getSeconds());
+
+          return formattedDateTime;
+        }
+
+        function updateData(sensorId) {
+          $.ajax({
+            url: 'get_data.php', // URL สำหรับดึงข้อมูลจากฐานข้อมูล
+            method: 'GET',
+            data: { sensor_id: sensorId }, // ส่งค่า sensor_id ไปให้ get_data.php
+            success: function (response) {
+              var data = JSON.parse(response);
+              $('#temperature').text(data.temperature);
+              $('#humidity').text(data.humidity);
+              $('#pressure').text(data.pressure);
+              $('#gas_resistance').text(data.gas_resistance);
+              $('#timestamp').text(formatThaiDateTime(data.timestamp));
+            },
+            error: function (xhr, status, error) {
+              console.log("Error: " + error);
+            }
+          });
+        }
+
+        // Initial data load
+        updateData($('#sensor_name').val());
+
+        // Update data when the sensor selection changes
+        $('#sensor_name').change(function () {
+          var selectedSensorId = $(this).val();
+          updateData(selectedSensorId);
+        });
+
+        setInterval(function () {
+          var selectedSensorId = $('#sensor_name').val();
+          updateData(selectedSensorId);
+        }, 1000); // อัพเดทข้อมูลทุก ๆ 1 วินาที
+
+
+        $('#search_btn').click(function () {
+          var sensorId = $('#sensor_id').val(); // รับค่า sensor_id
+          var startTimeInput = $('#start_time').val();
+          var endTimeInput = $('#end_time').val();
+
+          // Validate and format start time
+          var startTime = formatDateTime(startTimeInput);
+          if (!startTime) {
+            alert("Invalid start time format.");
+            return;
+          }
+
+          // Validate and format end time
+          var endTime = formatDateTime(endTimeInput);
+          if (!endTime) {
+            alert("Invalid end time format.");
+            return;
+          }
+
+          // Proceed with your AJAX request
+          $.ajax({
+            url: 'search_data.php',
+            method: 'GET',
+            data: {
+              sensor_id: sensorId,
+              start_time: startTime,
+              end_time: endTime
+            },
+            success: function (response) {
+              $('#search_results').html(response);
+            },
+            error: function (xhr, status, error) {
+              console.log("Error: " + error);
+            }
+          });
+        });
+
+        // Function to validate and format datetime input
+        function formatDateTime(datetime) {
+          var momentDate = moment(datetime, "YYYY-MM-DDTHH:mm", true);
+          if (!momentDate.isValid()) return null;
+
+          // Format as yyyy-mm-dd HH:mm:ss (MySQL compatible)
+          return momentDate.format("YYYY-MM-DD HH:mm:ss");
+        }
+      });
+    </script>
+</body>
+
+</html>
